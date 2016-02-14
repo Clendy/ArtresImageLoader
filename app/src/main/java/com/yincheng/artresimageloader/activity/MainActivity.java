@@ -81,10 +81,10 @@ public class MainActivity extends AppCompatActivity implements AbsListView.OnScr
 
     @Override
     public void onScrollStateChanged(AbsListView view, int scrollState) {
-        if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE) {
+        if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE) { //GradView处于停顿状态，加载图片
             mGradViewAdapter.setmIsGridViewIdle(true);
             mGradViewAdapter.notifyDataSetChanged();
-        } else {
+        } else { //GradView处于滚动状态，停止加载图片
             mGradViewAdapter.setmIsGridViewIdle(false);
         }
     }

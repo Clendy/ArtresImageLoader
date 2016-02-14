@@ -90,6 +90,7 @@ public class GradViewAdapter extends BaseAdapter {
         if (!uri.equals(tag)) {
             imageView.setImageDrawable(mDefaultBitmapDrawable);
         }
+        //GradView处于停顿状态且网络下载允许，就加载图片
         if (mIsGridViewIdle && mCanGetBitmapFromNetWork) {
             imageView.setTag(uri);
             mImageLoader.bindBitmap(uri, imageView, mImageWidth, mImageHeight);
