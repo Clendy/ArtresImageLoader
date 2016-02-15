@@ -10,7 +10,7 @@ public class PicUrlConstants {
             "http://b.hiphotos.baidu.com/zhidao/pic/item/a6efce1b9d16fdfafee0cfb5b68f8c5495ee7bd8.jpg",
             "http://pic47.nipic.com/20140830/7487939_180041822000_2.jpg",
             "http://pic41.nipic.com/20140518/4135003_102912523000_2.jpg",
-            "http://img2.imgtn.bdimg.com/it/u=1133260524,1171054226&fm=21&gp=0.jpg",
+            "http://enjoy.eastday.com/images/thumbnailimg/month_1410/20141005101117482.jpg",
             "http://h.hiphotos.baidu.com/image/pic/item/3b87e950352ac65c0f1f6e9efff2b21192138ac0.jpg",
             "http://img1.3lian.com/2015/w7/90/d/1.jpg", //error
             "http://pic10.nipic.com/20101027/3578782_201643041706_2.jpg",
@@ -21,7 +21,7 @@ public class PicUrlConstants {
             "http://picview01.baomihua.com/photos/20120917/m_14_634834710114218750_41852580.jpg",
             "http://cdn.duitang.com/uploads/item/201311/03/20131103171224_rr2aL.jpeg",
             "http://imgrt.pconline.com.cn/images/upload/upc/tx/wallpaper/1210/17/c1/spcgroup/14468225_1350443478079_1680x1050.jpg",
-            "http://pic41.nipic.com/20140518/4135003_102025858000_2.jpg",
+            "http://img.2258.com/d/file/yule/movie/tuwen/2014-12-25/b66b80a8f6528344e22f579d06a92f32.jpg", //error
             "http://www.1tong.com/uploads/wallpaper/landscapes/200-4-730x456.jpg",
             "http://pic.58pic.com/58pic/13/00/22/32M58PICV6U.jpg",
             "http://picview01.baomihua.com/photos/20120629/m_14_634765948339062500_11778706.jpg",
@@ -40,7 +40,7 @@ public class PicUrlConstants {
             "http://img0.pconline.com.cn/pconline/bizi/desktop/1412/ER2.jpg",
             "http://pic.58pic.com/58pic/11/25/04/91v58PIC6Xy.jpg",
             "http://img3.3lian.com/2013/c2/32/d/101.jpg",
-            "http://pic25.nipic.com/20121210/7447430_172514301000_2.jpg",
+            "http://test.wuhubtv.com/liv_loadfile/2014/09/1411011222_91483900.jpg",//error
             "http://img02.tooopen.com/images/20140320/sy_57121781945.jpg",
             "http://www.sinoca.com/d/file/news/ent/2014-07-14/04693c8c21c2a2f458795aad00e32bbf.jpg"//error
     };

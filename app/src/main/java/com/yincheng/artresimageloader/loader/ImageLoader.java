@@ -69,13 +69,16 @@ public class ImageLoader {
         }
     };
 
+    /**
+     * 线程池
+     */
     public static final Executor THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
-            CORE_POOL_SIZE,
-            MAXIMUM_POOL_SIZE,
-            KEEP_ALIVE,
-            TimeUnit.SECONDS,
+            CORE_POOL_SIZE,     //核心线程数 = 设备CPU核心数 + 1
+            MAXIMUM_POOL_SIZE,  //最大线程数 = 设备CPU核心数 * 2 + 1
+            KEEP_ALIVE,         //线程闲置时长 = 10秒
+            TimeUnit.SECONDS,   //线程闲置时长 单位：s
             new LinkedBlockingQueue<Runnable>(),
-            mThreadFactory);
+            mThreadFactory);    //线程工厂
 
     private static class MyHandler extends Handler {
 
@@ -166,49 +169,47 @@ public class ImageLoader {
         imageView.setTag(imageView.getId(), uri);
         final Bitmap bitmap = loadBitmapFromeMemoryCache(uri);
         if (null != bitmap) {
-            Log.d(TAG,"bitmap:"+bitmap.getWidth()+"×"+bitmap.getHeight());
+            Log.d(TAG, "bitmap:" + bitmap.getWidth() + "×" + bitmap.getHeight());
             imageView.setImageBitmap(bitmap);
             return;
         }
-        //设置压缩参数
-        int pixelW = 0;
-        int pixelH = 0;
-        int imageViewW = imageView.getWidth() == 0 ? imageView.getHeight() : imageView.getWidth();
-        int imageViewH = imageView.getHeight() == 0 ? imageView.getWidth() : imageView.getHeight();
-        Log.d(TAG, "imageViewW:" + imageViewW + ", imageViewH:" + imageViewH);
-        Log.d(TAG, "reqWidth:" + reqWidth + ", reqHeight:" + reqHeight);
-        if (reqWidth > 0 && reqHeight > 0 && imageViewW > 0 && imageViewH > 0) { //如果指定压缩高宽大于0
-            //如果ImageView的高宽有一个小于指定压缩高宽，就以ImageView的高宽为压缩基准
-            if (imageViewW < reqWidth || imageViewH < reqHeight) {
-                pixelW = imageViewW;
-                pixelH = imageViewH;
-            } else { //否则就依然以指定高宽为压缩基准
-                pixelW = reqWidth;
-                pixelH = reqHeight;
-            }
-        } else if (reqWidth <= 0 && reqWidth <= 0 && imageViewW > 0 && imageViewH > 0) {
-            //如果指定压缩高宽小于0，就依然以ImageView的大小为压缩基准
-            pixelW = imageViewW;
-            pixelH = imageViewH;
-        } else if (reqWidth > 0 && reqHeight > 0 && imageViewW == 0 && imageViewH == 0) {
-            pixelW = reqWidth;
-            pixelH = reqHeight;
-        }
-        Log.d(TAG, "pixelW:" + pixelW + ", pixelH:" + pixelH);
-        final int finalPixelW = pixelW;
-        final int finalPixelH = pixelH;
+//        //设置压缩参数
+//        int pixelW = 0;
+//        int pixelH = 0;
+//        int imageViewW = imageView.getWidth() == 0 ? imageView.getHeight() : imageView.getWidth();
+//        int imageViewH = imageView.getHeight() == 0 ? imageView.getWidth() : imageView.getHeight();
+//        Log.d(TAG, "imageViewW:" + imageViewW + ", imageViewH:" + imageViewH);
+//        Log.d(TAG, "reqWidth:" + reqWidth + ", reqHeight:" + reqHeight);
+//        if (reqWidth > 0 && reqHeight > 0 && imageViewW > 0 && imageViewH > 0) { //如果指定压缩高宽大于0
+//            //如果ImageView的高宽有一个小于指定压缩高宽，就以ImageView的高宽为压缩基准
+//            if (imageViewW < reqWidth || imageViewH < reqHeight) {
+//                pixelW = imageViewW;
+//                pixelH = imageViewH;
+//            } else { //否则就依然以指定高宽为压缩基准
+//                pixelW = reqWidth;
+//                pixelH = reqHeight;
+//            }
+//        } else if (reqWidth <= 0 && reqWidth <= 0 && imageViewW > 0 && imageViewH > 0) {
+//            //如果指定压缩高宽小于0，就依然以ImageView的大小为压缩基准
+//            pixelW = imageViewW;
+//            pixelH = imageViewH;
+//        } else if (reqWidth > 0 && reqHeight > 0 && imageViewW == 0 && imageViewH == 0) {
+//            pixelW = reqWidth;
+//            pixelH = reqHeight;
+//        }
+//        Log.d(TAG, "pixelW:" + pixelW + ", pixelH:" + pixelH);
+//        final int finalPixelW = pixelW;
+//        final int finalPixelH = pixelH;
+        final int[] compressParams = MyUtils.calculateCompressParams(imageView, reqWidth, reqHeight);
         final WeakReference<ImageView> mImageViewReference = new WeakReference<>(imageView);
         Runnable loadBitmapTask = new Runnable() {
             @Override
             public void run() {
-                Bitmap bitmap = loadBitmap(uri, finalPixelW, finalPixelH);
-                Log.d(TAG,"bitmap:"+bitmap.getWidth()+"×"+bitmap.getHeight());
+                Bitmap bitmap = loadBitmap(uri, compressParams[0], compressParams[0]);
                 if (bitmap != null) {
+                    Log.d(TAG, "bitmap:" + bitmap.getWidth() + "×" + bitmap.getHeight());
                     LoaderResult result = new LoaderResult(mImageViewReference, uri, bitmap);
                     myHandler.obtainMessage(MESSAGE_POST_RESULT, result).sendToTarget();
-                    if(myHandler.getLooper() == Looper.getMainLooper()){
-                       Log.i(TAG, "myHandler is MainHandler");
-                    }
                 }
             }
         };
@@ -324,6 +325,45 @@ public class ImageLoader {
         return loadBitmapFromeDiskCache(url, reqWidth, reqHeight);
     }
 
+    /**
+     * 由图片url下载图片写入OutputStream
+     *
+     * @param urlString    图片url
+     * @param outputStream 图片输出流
+     * @return 成功写出返回true, 否则false
+     */
+    private boolean downloadUrlToStream(String urlString, OutputStream outputStream) {
+
+        HttpURLConnection urlConnection = null;
+        BufferedOutputStream out = null;
+        BufferedInputStream in = null;
+        try {
+            final URL url = new URL(urlString);
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setConnectTimeout(5000);
+            urlConnection.setRequestMethod("GET");
+            if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                in = new BufferedInputStream(urlConnection.getInputStream(), IO_BUFFER_SIZE);
+                out = new BufferedOutputStream(outputStream, IO_BUFFER_SIZE);
+                byte[] buffer = new byte[1024];
+                int len;
+                while ((len = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, len);
+                }
+                return true;
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "downloadBitmap failed." + e);
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+            MyUtils.close(out);
+            MyUtils.close(in);
+        }
+        return false;
+    }
+
     /****************** Memory cache ***********************/
     /**
      * 添加图片至内存缓存中
@@ -419,45 +459,6 @@ public class ImageLoader {
         return sb.toString();
     }
 
-    /**
-     * 由图片url下载图片写入OutputStream
-     *
-     * @param urlString    图片url
-     * @param outputStream 图片输出流
-     * @return 成功写出返回true, 否则false
-     */
-    private boolean downloadUrlToStream(String urlString, OutputStream outputStream) {
-
-        HttpURLConnection urlConnection = null;
-        BufferedOutputStream out = null;
-        BufferedInputStream in = null;
-        try {
-            final URL url = new URL(urlString);
-            urlConnection = (HttpURLConnection) url.openConnection();
-            urlConnection.setConnectTimeout(5000);
-            urlConnection.setRequestMethod("GET");
-            if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                in = new BufferedInputStream(urlConnection.getInputStream(), IO_BUFFER_SIZE);
-                out = new BufferedOutputStream(outputStream, IO_BUFFER_SIZE);
-                byte[] buffer = new byte[1024];
-                int len;
-                while ((len = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, len);
-                }
-                return true;
-            }
-        } catch (IOException e) {
-//        Log.e(TAG, "downloadBitmap failed." + e);
-            e.printStackTrace();
-        } finally {
-            if (urlConnection != null) {
-                urlConnection.disconnect();
-            }
-            MyUtils.close(out);
-            MyUtils.close(in);
-        }
-        return false;
-    }
 
     private static class LoaderResult {
 //        public ImageView imageView;
