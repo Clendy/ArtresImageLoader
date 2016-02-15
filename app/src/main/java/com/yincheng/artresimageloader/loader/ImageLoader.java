@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,14 +36,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * ImageLoader
- * Created by yinCheng on 2016/2/14 014.
+ * ImageLoader 图片加载
+ * Created by yinCheng on 2015/12/18 014.
  */
 public class ImageLoader {
 
     private static final String TAG = "ImageLoader";
 
-    private Context mContext;
     private LruCache<String, Bitmap> mMemoryCache;
     private DiskLruCache mDiskLruCache;
 
@@ -63,7 +61,7 @@ public class ImageLoader {
     private static final long KEEP_ALIVE = 10L;
 
     private static final ThreadFactory mThreadFactory = new ThreadFactory() {
-        private final AtomicInteger mCount = new AtomicInteger(1);//自动增长int型变量
+        private final AtomicInteger mCount = new AtomicInteger(1);
 
         @Override
         public Thread newThread(@NonNull Runnable r) {
@@ -79,14 +77,18 @@ public class ImageLoader {
             new LinkedBlockingQueue<Runnable>(),
             mThreadFactory);
 
-    private static class MyHandler extends Handler{
+    private static class MyHandler extends Handler {
+
+        public MyHandler(Looper looper) {
+            super(looper);
+        }
 
         @Override
         public void handleMessage(Message msg) {
+            super.handleMessage(msg);
             LoaderResult result = (LoaderResult) msg.obj;
-//            ImageView imageView = result.imageView;
             WeakReference<ImageView> imageViewReference = result.imageViewReference;
-            if (null != imageViewReference){
+            if (null != imageViewReference) {
                 ImageView mImageView = imageViewReference.get();
                 String uri = (String) mImageView.getTag(mImageView.getId());
                 if (uri != null && uri.equals(result.uri)) {
@@ -121,9 +123,9 @@ public class ImageLoader {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private ImageLoader(Context context) {
 
-        myHandler = new MyHandler();
+        myHandler = new MyHandler(Looper.getMainLooper());
 
-        mContext = context.getApplicationContext();
+        Context mContext = context.getApplicationContext();
         int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
         int cacheSize = maxMemory / 8;
         // Created memory cache by LruCache
@@ -160,15 +162,14 @@ public class ImageLoader {
 
     public void bindBitmap(final String uri, final ImageView imageView,
                            final int reqWidth, final int reqHeight) {
-
+        //设置ImageView的Tag
         imageView.setTag(imageView.getId(), uri);
         final Bitmap bitmap = loadBitmapFromeMemoryCache(uri);
         if (null != bitmap) {
             imageView.setImageBitmap(bitmap);
             return;
         }
-
-        //
+        //设置压缩参数
         int pixelW = 0;
         int pixelH = 0;
         int imageViewW = imageView.getWidth() == 0 ? imageView.getHeight() : imageView.getWidth();
@@ -180,20 +181,17 @@ public class ImageLoader {
             if (imageViewW < reqWidth || imageViewH < reqHeight) {
                 pixelW = imageViewW;
                 pixelH = imageViewH;
-                Log.i("TAG", "以ImageView高宽为压缩基准");
             } else { //否则就依然以指定高宽为压缩基准
                 pixelW = reqWidth;
                 pixelH = reqHeight;
-                Log.i("TAG", "以指定高宽为压缩基准");
             }
-        } else if (reqWidth <= 0 && reqWidth <= 0 && imageViewW > 0 && imageViewH > 0) { //如果指定压缩高宽小于0，就依然以ImageView的大小为压缩基准
+        } else if (reqWidth <= 0 && reqWidth <= 0 && imageViewW > 0 && imageViewH > 0) {
+            //如果指定压缩高宽小于0，就依然以ImageView的大小为压缩基准
             pixelW = imageViewW;
             pixelH = imageViewH;
-            Log.i("TAG", "以ImageView高宽为压缩基准");
         } else if (reqWidth > 0 && reqHeight > 0 && imageViewW == 0 && imageViewH == 0) {
             pixelW = reqWidth;
             pixelH = reqHeight;
-            Log.i("TAG", "以指定高宽为压缩基准");
         }
         Log.d(TAG, "pixelW:" + pixelW + ", pixelH:" + pixelH);
         final int finalPixelW = pixelW;
@@ -202,12 +200,8 @@ public class ImageLoader {
         Runnable loadBitmapTask = new Runnable() {
             @Override
             public void run() {
-//                Bitmap bitmap = loadBitmap(uri, reqWidth, reqHeight);
                 Bitmap bitmap = loadBitmap(uri, finalPixelW, finalPixelH);
                 if (bitmap != null) {
-                    // TODO
-//                    LoaderResult result = new LoaderResult(imageView, uri, bitmap);
-//                    mMainHandler.obtainMessage(MESSAGE_POST_RESULT, result).sendToTarget();
                     LoaderResult result = new LoaderResult(mImageViewReference, uri, bitmap);
                     myHandler.obtainMessage(MESSAGE_POST_RESULT, result).sendToTarget();
                 }
@@ -343,7 +337,7 @@ public class ImageLoader {
      * 从内存缓存中获取图片
      *
      * @param key 图片url对应的key
-     * @return
+     * @return 返回Bitmap对象
      */
     private Bitmap getBitmapFromMemeryCache(String key) {
         return mMemoryCache.get(key);
@@ -359,13 +353,18 @@ public class ImageLoader {
      * @param uniqueName 目录名
      * @return 磁盘缓存区域
      */
+    @SuppressWarnings({"context can not be null!", "ConstantConditions"})
     public File getDiskCacheDir(Context context, String uniqueName) {
         boolean externalStorageAvailable = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
-        final String cachePath;
-        if (externalStorageAvailable) {
-            cachePath = context.getExternalCacheDir().getPath();
+        String cachePath;
+        if (null != context) {
+            if (externalStorageAvailable) {
+                cachePath = context.getExternalCacheDir().getPath();
+            } else {
+                cachePath = context.getCacheDir().getPath();
+            }
         } else {
-            cachePath = context.getCacheDir().getPath();
+            cachePath = Environment.getExternalStorageDirectory().getAbsolutePath();
         }
         return new File(cachePath + File.separator + uniqueName);
     }
@@ -405,8 +404,8 @@ public class ImageLoader {
 
     private String bytesToHexString(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < bytes.length; i++) {
-            String hex = Integer.toHexString(0xFF & bytes[i]);
+        for (byte aByte : bytes) {
+            String hex = Integer.toHexString(0xFF & aByte);
             if (hex.length() == 1) {
                 sb.append('0');
             }
@@ -415,34 +414,12 @@ public class ImageLoader {
         return sb.toString();
     }
 
-//    /**
-//     * 文件输出流写入文件系统
-//     *
-//     * @param url
-//     */
-//    private void editOutputStream(String url) {
-//        String key = hashKeyFromUrl(url);
-//        try {
-//            DiskLruCache.Editor editor = mDiskLruCache.edit(key);
-//            if (null != editor) {
-//                OutputStream out = editor.newOutputStream(DISK_CACHE_INDEX);
-//                if (downloadUrlToStream(url, out)) {
-//                    editor.commit();
-//                } else {
-//                    editor.abort();
-//                }
-//            }
-//            mDiskLruCache.flush();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
     /**
      * 由图片url下载图片写入OutputStream
-     * @param urlString     图片url
-     * @param outputStream  图片输出流
-     * @return 成功写出返回true,否则false
+     *
+     * @param urlString    图片url
+     * @param outputStream 图片输出流
+     * @return 成功写出返回true, 否则false
      */
     private boolean downloadUrlToStream(String urlString, OutputStream outputStream) {
 
@@ -497,7 +474,6 @@ public class ImageLoader {
             this.uri = uri;
             this.bitmap = bitmap;
         }
-
     }
 
 }
