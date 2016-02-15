@@ -166,6 +166,7 @@ public class ImageLoader {
         imageView.setTag(imageView.getId(), uri);
         final Bitmap bitmap = loadBitmapFromeMemoryCache(uri);
         if (null != bitmap) {
+            Log.d(TAG,"bitmap:"+bitmap.getWidth()+"×"+bitmap.getHeight());
             imageView.setImageBitmap(bitmap);
             return;
         }
@@ -201,9 +202,13 @@ public class ImageLoader {
             @Override
             public void run() {
                 Bitmap bitmap = loadBitmap(uri, finalPixelW, finalPixelH);
+                Log.d(TAG,"bitmap:"+bitmap.getWidth()+"×"+bitmap.getHeight());
                 if (bitmap != null) {
                     LoaderResult result = new LoaderResult(mImageViewReference, uri, bitmap);
                     myHandler.obtainMessage(MESSAGE_POST_RESULT, result).sendToTarget();
+                    if(myHandler.getLooper() == Looper.getMainLooper()){
+                       Log.i(TAG, "myHandler is MainHandler");
+                    }
                 }
             }
         };
